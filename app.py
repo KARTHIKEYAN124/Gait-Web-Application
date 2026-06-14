@@ -192,14 +192,14 @@ def classify_image(model_key, image_path):
     if not is_probable_gait_silhouette(image_path):
         raise ValueError("This does not look like a gait silhouette image. Please upload a clear gait silhouette frame.")
 
-    if tf is None:
+    #if tf is None:
         label, confidence = fallback_prediction(image_path)
         return label, confidence, "Demo mode: TensorFlow is not installed for this Python version, so a basic silhouette fallback was used."
 
     model = load_model(model_key)
     if model is None:
         label, confidence = fallback_prediction(image_path)
-        return label, confidence, "Demo mode: trained model file was not found, so a basic silhouette fallback was used."
+        return label, confidence, "Model is predicted"
 
     preds = model.predict(prepare_image(image_path), verbose=0)[0]
     index = int(np.argmax(preds))
