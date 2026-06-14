@@ -35,7 +35,7 @@
             <div class="result-grid">
                 <img src="{{ result.image_url }}" alt="Uploaded gait silhouette">
                 <div>
-                    <p><strong>Prediction:</strong> {{ result.label }}</p>
+                    <p class="classification-label">Classification: {{ result.label }}</p>
                     <p><strong>Confidence:</strong> {{ result.confidence }}%</p>
                     {% if result.note %}
                         <p class="note">{{ result.note }}</p>

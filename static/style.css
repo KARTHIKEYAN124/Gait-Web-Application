@@ -192,8 +192,16 @@ label {
     font-weight: 700;
 }
 
+.classification-label {
+    margin: 0 0 12px;
+    font-size: 24px;
+    font-weight: 800;
+    color: #12355b;
+}
+
 .note {
     color: #667085;
+    font-size: 14px;
 }
 
 .messages {
