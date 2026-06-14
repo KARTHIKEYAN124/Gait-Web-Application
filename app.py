@@ -451,8 +451,14 @@ def models_page():
 
 @app.route("/comparison")
 def comparison():
-    figures = get_comparison_figures()
-    return render_template("comparison.html", results=EVALUATION_RESULTS, figures=figures)
+    analyzed = request.args.get("analyze") == "1"
+    figures = get_comparison_figures() if analyzed else {}
+    return render_template(
+        "comparison.html",
+        results=EVALUATION_RESULTS,
+        figures=figures,
+        analyzed=analyzed,
+    )
 
 
 @app.route("/survey", methods=["GET", "POST"])

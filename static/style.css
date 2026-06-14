@@ -191,6 +191,10 @@ label {
     gap: 12px;
 }
 
+.analyze-form {
+    margin-top: 22px;
+}
+
 .result-grid {
     display: grid;
     grid-template-columns: 220px 1fr;
