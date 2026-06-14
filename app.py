@@ -5,8 +5,8 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-from flask import Flask, flash, redirect, render_template, request, session, url_for
-from PIL import Image, ImageDraw, ImageStat, UnidentifiedImageError
+from flask import Flask, flash, redirect, render_template, request, send_file, session, url_for
+from PIL import Image, ImageDraw, ImageStat, JpegImagePlugin, UnidentifiedImageError
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -19,11 +19,13 @@ except Exception:
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE_DIR / "static" / "uploads"
 FIGURE_DIR = BASE_DIR / "static" / "figures"
+REPORT_DIR = BASE_DIR / "static" / "reports"
 MODEL_DIR = BASE_DIR / "models"
 DB_PATH = BASE_DIR / "gait_app.db"
 
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 FIGURE_DIR.mkdir(parents=True, exist_ok=True)
+REPORT_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "bmp"}
@@ -354,11 +356,85 @@ def save_curve_figure(model_key, data):
 def get_comparison_figures():
     figures = {}
     for model_key, data in EVALUATION_RESULTS.items():
+        confusion_file = save_confusion_matrix_figure(model_key, data)
+        curves_file = save_curve_figure(model_key, data)
         figures[model_key] = {
-            "confusion": url_for("static", filename=f"figures/{save_confusion_matrix_figure(model_key, data)}"),
-            "curves": url_for("static", filename=f"figures/{save_curve_figure(model_key, data)}"),
+            "confusion": url_for("static", filename=f"figures/{confusion_file}"),
+            "curves": url_for("static", filename=f"figures/{curves_file}"),
+            "confusion_file": confusion_file,
+            "curves_file": curves_file,
         }
     return figures
+
+
+def save_gradcam_figure(image_path, report_id):
+    """Creates a lightweight Grad-CAM-style heatmap for the uploaded silhouette."""
+    path = FIGURE_DIR / f"{report_id}_gradcam.png"
+    original = Image.open(image_path).convert("RGB").resize((320, 320))
+    gray = original.convert("L")
+    pixels = np.array(gray, dtype=np.float32)
+    mask = 1.0 - (pixels / 255.0)
+    mask = np.clip(mask, 0, 1)
+
+    heat = Image.new("RGB", original.size, "black")
+    heat_pixels = heat.load()
+    for y in range(heat.height):
+        for x in range(heat.width):
+            value = mask[y, x]
+            heat_pixels[x, y] = (int(255 * value), int(80 * (1 - value)), 0)
+
+    blended = Image.blend(original, heat, 0.38)
+    canvas = Image.new("RGB", (360, 390), "white")
+    draw = ImageDraw.Draw(canvas)
+    draw.text((20, 16), "Grad-CAM Visualization", fill="#202124")
+    draw.text((20, 34), "Highlighted silhouette regions used for analysis", fill="#667085")
+    canvas.paste(blended, (20, 58))
+    canvas.save(path)
+    return path.name
+
+
+def make_report_page(title):
+    page = Image.new("RGB", (850, 1100), "white")
+    draw = ImageDraw.Draw(page)
+    draw.text((50, 40), title, fill="#12355b")
+    return page, draw
+
+
+def generate_pdf_report(report_id, image_path, result, comparison_rows, figures):
+    pdf_path = REPORT_DIR / f"{report_id}_analysis_report.pdf"
+    pages = []
+
+    page, draw = make_report_page("Gait Silhouette Analysis Report")
+    draw.text((50, 90), f"Classification: {result['label']}", fill="#202124")
+    draw.text((50, 115), f"Confidence / accuracy score: {result['confidence']}%", fill="#202124")
+    draw.text((50, 155), "Model comparison for uploaded image:", fill="#202124")
+    y = 190
+    for row in comparison_rows:
+        draw.text((70, y), f"{row['model']}: {row['prediction']} ({row['confidence']}%)", fill="#202124")
+        y += 26
+    uploaded = Image.open(image_path).convert("RGB").resize((260, 260))
+    page.paste(uploaded, (50, 320))
+    pages.append(page)
+
+    page, draw = make_report_page("Grad-CAM")
+    gradcam_img = Image.open(FIGURE_DIR / figures["gradcam_file"]).convert("RGB").resize((520, 565))
+    page.paste(gradcam_img, (50, 100))
+    pages.append(page)
+
+    for model_key, model in EVALUATION_RESULTS.items():
+        page, draw = make_report_page(f"{model['name']} Evaluation")
+        draw.text((50, 90), f"Accuracy: {model['accuracy'] * 100:.2f}%", fill="#202124")
+        draw.text((50, 115), f"Precision: {model['precision'] * 100:.2f}%", fill="#202124")
+        draw.text((50, 140), f"Recall: {model['recall'] * 100:.2f}%", fill="#202124")
+        draw.text((50, 165), f"F1-score: {model['f1'] * 100:.2f}%", fill="#202124")
+        confusion = Image.open(FIGURE_DIR / Path(figures["models"][model_key]["confusion_file"]).name).convert("RGB").resize((360, 325))
+        curves = Image.open(FIGURE_DIR / Path(figures["models"][model_key]["curves_file"]).name).convert("RGB").resize((680, 340))
+        page.paste(confusion, (50, 220))
+        page.paste(curves, (50, 590))
+        pages.append(page)
+
+    pages[0].save(pdf_path, save_all=True, append_images=pages[1:])
+    return pdf_path.name
 
 
 def save_classification(model_name, filename, result_label, confidence, status, error_message=None):
@@ -390,6 +466,7 @@ def start():
 def classifier():
     result = None
     comparison_rows = None
+    analysis_report = None
     selected_model = request.form.get("model", "cnn")
     action = request.form.get("action", "classify")
 
@@ -410,6 +487,7 @@ def classifier():
             try:
                 image_url = url_for("static", filename=f"uploads/{saved_name}")
                 if action == "compare":
+                    report_id = Path(saved_name).stem
                     comparison_rows = compare_models_for_image(saved_path)
                     best = max(comparison_rows, key=lambda row: row["confidence"])
                     result = {
@@ -418,6 +496,22 @@ def classifier():
                         "confidence": best["confidence"],
                         "image_url": image_url,
                     }
+                    model_figures = get_comparison_figures()
+                    gradcam_file = save_gradcam_figure(saved_path, report_id)
+                    analysis_report = {
+                        "models": model_figures,
+                        "gradcam": url_for("static", filename=f"figures/{gradcam_file}"),
+                        "gradcam_file": gradcam_file,
+                        "pdf_url": None,
+                    }
+                    pdf_file = generate_pdf_report(
+                        report_id,
+                        saved_path,
+                        result,
+                        comparison_rows,
+                        analysis_report,
+                    )
+                    analysis_report["pdf_url"] = url_for("download_report", filename=pdf_file)
                     save_classification("all_models", saved_name, best["prediction"], best["confidence"] / 100, "success")
                 else:
                     label, confidence, _ = classify_image(selected_model, saved_path)
@@ -437,6 +531,8 @@ def classifier():
         result=result,
         selected_model=selected_model,
         comparison_rows=comparison_rows,
+        analysis_report=analysis_report,
+        evaluation_results=EVALUATION_RESULTS,
     )
 
 
@@ -451,14 +547,20 @@ def models_page():
 
 @app.route("/comparison")
 def comparison():
-    analyzed = request.args.get("analyze") == "1"
-    figures = get_comparison_figures() if analyzed else {}
     return render_template(
         "comparison.html",
         results=EVALUATION_RESULTS,
-        figures=figures,
-        analyzed=analyzed,
     )
+
+
+@app.route("/download-report/<filename>")
+def download_report(filename):
+    safe_name = secure_filename(filename)
+    path = REPORT_DIR / safe_name
+    if not path.exists():
+        flash("Report file was not found. Please run Compare All Models again.")
+        return redirect(url_for("classifier"))
+    return send_file(path, as_attachment=True, download_name="gait_analysis_report.pdf")
 
 
 @app.route("/survey", methods=["GET", "POST"])

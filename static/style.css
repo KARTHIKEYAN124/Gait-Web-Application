@@ -195,6 +195,20 @@ label {
     margin-top: 22px;
 }
 
+.analysis-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.inline-report {
+    border-top: 1px solid #dfe3e8;
+    margin-top: 22px;
+    padding-top: 18px;
+}
+
 .result-grid {
     display: grid;
     grid-template-columns: 220px 1fr;
@@ -322,7 +336,8 @@ th {
 
 @media (max-width: 760px) {
     .topbar,
-    .admin-head {
+    .admin-head,
+    .analysis-head {
         align-items: flex-start;
         flex-direction: column;
     }

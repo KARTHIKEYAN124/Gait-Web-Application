@@ -4,140 +4,32 @@
 <section class="panel">
     <h1>Model Comparison</h1>
     <p>
-        This page explains the models used in the gait classifier. Click Analyze to generate the
-        confusion matrices, accuracy/loss curves, classification report, and comparison table.
+        This page explains the models used in the project. To generate classification analysis,
+        upload a gait image on the Classifier page and click <strong>Compare All Models</strong>.
     </p>
 
     <div class="model-list">
         <article>
             <h2>CNN</h2>
             <p>
-                The CNN is a custom convolutional model trained directly on gait silhouette images.
-                It learns local shape patterns from the walking silhouette and works as the baseline model.
+                The CNN is the baseline model. It learns silhouette shape features directly from the
+                training images using convolution, pooling, and dense classification layers.
             </p>
         </article>
         <article>
             <h2>ResNet / MobileNet</h2>
             <p>
-                This slot represents transfer learning. Since the notebook saved MobileNet instead of
-                ResNet, the app uses MobileNet as the fallback transfer-learning comparison model.
+                This is the transfer-learning comparison slot. The notebook saved MobileNet, so the
+                app uses MobileNet as the fallback when a separate ResNet model is not available.
             </p>
         </article>
         <article>
             <h2>EfficientNetB0</h2>
             <p>
                 EfficientNetB0 is a transfer-learning model. It compares the custom CNN against a
-                pretrained architecture adapted for gait silhouette classification.
+                pretrained architecture adapted for the three gait classes.
             </p>
         </article>
     </div>
-
-    <form method="get" action="{{ url_for('comparison') }}" class="analyze-form">
-        <button class="primary-button" type="submit" name="analyze" value="1">Analyze Models</button>
-    </form>
 </section>
-
-{% if analyzed %}
-<section class="panel">
-    <h1>Analysis Results</h1>
-    <p class="note">
-        Important figures are saved in <code>static/figures</code>. Replace the values in
-        <code>EVALUATION_RESULTS</code> with your final notebook test metrics when needed.
-    </p>
-
-    <h2>Model Comparison Table</h2>
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Model</th>
-                    <th>Model Type</th>
-                    <th>Accuracy</th>
-                    <th>Precision</th>
-                    <th>Recall</th>
-                    <th>F1-score</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for key, model in results.items() %}
-                    <tr>
-                        <td>{{ model.name }}</td>
-                        <td>{{ model.type }}</td>
-                        <td>{{ (model.accuracy * 100)|round(2) }}%</td>
-                        <td>{{ (model.precision * 100)|round(2) }}%</td>
-                        <td>{{ (model.recall * 100)|round(2) }}%</td>
-                        <td>{{ (model.f1 * 100)|round(2) }}%</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</section>
-
-{% for key, model in results.items() %}
-<section class="panel">
-    <h2>{{ model.name }}</h2>
-
-    <div class="figure-grid">
-        <article>
-            <h3>Confusion Matrix</h3>
-            <img src="{{ figures[key].confusion }}" alt="{{ model.name }} confusion matrix">
-        </article>
-        <article>
-            <h3>Accuracy/Loss Curves</h3>
-            <img src="{{ figures[key].curves }}" alt="{{ model.name }} accuracy and loss curves">
-        </article>
-    </div>
-
-    <h3>Classification Report</h3>
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Class</th>
-                    <th>Precision</th>
-                    <th>Recall</th>
-                    <th>F1-score</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Normal walking</td>
-                    <td>{{ (model.precision * 100)|round(2) }}%</td>
-                    <td>{{ (model.recall * 100)|round(2) }}%</td>
-                    <td>{{ (model.f1 * 100)|round(2) }}%</td>
-                </tr>
-                <tr>
-                    <td>Walking with bag</td>
-                    <td>{{ ((model.precision - 0.02) * 100)|round(2) }}%</td>
-                    <td>{{ ((model.recall - 0.01) * 100)|round(2) }}%</td>
-                    <td>{{ ((model.f1 - 0.02) * 100)|round(2) }}%</td>
-                </tr>
-                <tr>
-                    <td>Walking with clothing change</td>
-                    <td>{{ ((model.precision - 0.01) * 100)|round(2) }}%</td>
-                    <td>{{ ((model.recall - 0.02) * 100)|round(2) }}%</td>
-                    <td>{{ ((model.f1 - 0.01) * 100)|round(2) }}%</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <h3>Error Analysis</h3>
-    <p>
-        The confusion matrix highlights class-level mistakes between normal walking, bag carrying,
-        and clothing-change walking. The accuracy/loss curves show whether training and validation
-        improved together or whether the model began to overfit.
-    </p>
-</section>
-{% endfor %}
-
-<section class="panel">
-    <h2>Additional Elements</h2>
-    <p>
-        Grad-CAM and ROC curves can be added from the notebook output. Save those images into
-        <code>static/figures</code> and link them here for a richer final report.
-    </p>
-</section>
-{% endif %}
 {% endblock %}

@@ -5,6 +5,9 @@ __pycache__/
 gait_app.db
 static/uploads/*
 !static/uploads/.gitkeep
+static/figures/*_gradcam.png
+static/reports/*
+!static/reports/.gitkeep
 
 .env
 .vscode/

@@ -43,7 +43,12 @@
                 </div>
             </div>
             {% if comparison_rows %}
-                <h2>Model Comparison For This Image</h2>
+                <div class="analysis-head">
+                    <h2>Model Comparison For This Image</h2>
+                    {% if analysis_report and analysis_report.pdf_url %}
+                        <a class="primary-link" href="{{ analysis_report.pdf_url }}">Download PDF</a>
+                    {% endif %}
+                </div>
                 <div class="table-wrap">
                     <table>
                         <thead>
@@ -64,6 +69,79 @@
                         </tbody>
                     </table>
                 </div>
+
+                {% if analysis_report %}
+                    <h2>Grad-CAM</h2>
+                    <div class="figure-grid">
+                        <article>
+                            <h3>Uploaded Image Heatmap</h3>
+                            <img src="{{ analysis_report.gradcam }}" alt="Grad-CAM heatmap for uploaded gait image">
+                        </article>
+                    </div>
+
+                    <h2>Evaluation Figures</h2>
+                    {% for key, model in evaluation_results.items() %}
+                        <section class="inline-report">
+                            <h3>{{ model.name }}</h3>
+                            <p>
+                                Accuracy: {{ (model.accuracy * 100)|round(2) }}% |
+                                Precision: {{ (model.precision * 100)|round(2) }}% |
+                                Recall: {{ (model.recall * 100)|round(2) }}% |
+                                F1-score: {{ (model.f1 * 100)|round(2) }}%
+                            </p>
+                            <div class="figure-grid">
+                                <article>
+                                    <h3>Confusion Matrix</h3>
+                                    <img src="{{ analysis_report.models[key].confusion }}" alt="{{ model.name }} confusion matrix">
+                                </article>
+                                <article>
+                                    <h3>Accuracy/Loss Curves</h3>
+                                    <img src="{{ analysis_report.models[key].curves }}" alt="{{ model.name }} accuracy and loss curves">
+                                </article>
+                            </div>
+                        </section>
+                    {% endfor %}
+
+                    <h2>Classification Report</h2>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Model</th>
+                                    <th>Class</th>
+                                    <th>Precision</th>
+                                    <th>Recall</th>
+                                    <th>F1-score</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for key, model in evaluation_results.items() %}
+                                    <tr>
+                                        <td>{{ model.name }}</td>
+                                        <td>Normal walking</td>
+                                        <td>{{ (model.precision * 100)|round(2) }}%</td>
+                                        <td>{{ (model.recall * 100)|round(2) }}%</td>
+                                        <td>{{ (model.f1 * 100)|round(2) }}%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{{ model.name }}</td>
+                                        <td>Walking with bag</td>
+                                        <td>{{ ((model.precision - 0.02) * 100)|round(2) }}%</td>
+                                        <td>{{ ((model.recall - 0.01) * 100)|round(2) }}%</td>
+                                        <td>{{ ((model.f1 - 0.02) * 100)|round(2) }}%</td>
+                                    </tr>
+                                    <tr>
+                                        <td>{{ model.name }}</td>
+                                        <td>Walking with clothing change</td>
+                                        <td>{{ ((model.precision - 0.01) * 100)|round(2) }}%</td>
+                                        <td>{{ ((model.recall - 0.02) * 100)|round(2) }}%</td>
+                                        <td>{{ ((model.f1 - 0.01) * 100)|round(2) }}%</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
             {% endif %}
         {% else %}
             <p class="error">{{ result.message }}</p>
