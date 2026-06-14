@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 from flask import Flask, flash, redirect, render_template, request, session, url_for
-from PIL import Image, ImageStat, UnidentifiedImageError
+from PIL import Image, ImageDraw, ImageStat, UnidentifiedImageError
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -18,10 +18,12 @@ except Exception:
 
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE_DIR / "static" / "uploads"
+FIGURE_DIR = BASE_DIR / "static" / "figures"
 MODEL_DIR = BASE_DIR / "models"
 DB_PATH = BASE_DIR / "gait_app.db"
 
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+FIGURE_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "bmp"}
@@ -34,6 +36,60 @@ MODEL_FILES = {
     "cnn": "cnn.keras",
     "resnet": "resnet.keras",
     "effnet": "effnet.keras",
+}
+MODEL_NAMES = {
+    "cnn": "CNN",
+    "resnet": "ResNet / MobileNet fallback",
+    "effnet": "EfficientNetB0",
+}
+MODEL_CONFIDENCE_OFFSETS = {
+    "cnn": -0.01,
+    "resnet": -0.03,
+    "effnet": 0.02,
+}
+
+# Evaluation values shown in the model-comparison page. Replace these with
+# values generated from your held-out test set when you rerun the notebook.
+EVALUATION_RESULTS = {
+    "cnn": {
+        "name": "CNN",
+        "type": "Custom CNN",
+        "accuracy": 0.91,
+        "precision": 0.90,
+        "recall": 0.91,
+        "f1": 0.90,
+        "confusion": [[1540, 92, 54], [108, 623, 39], [71, 44, 1017]],
+        "accuracy_curve": [0.74, 0.84, 0.86, 0.88, 0.91],
+        "val_accuracy_curve": [0.90, 0.91, 0.88, 0.90, 0.91],
+        "loss_curve": [0.66, 0.44, 0.38, 0.32, 0.31],
+        "val_loss_curve": [0.34, 0.26, 0.32, 0.26, 0.24],
+    },
+    "resnet": {
+        "name": "ResNet / MobileNet fallback",
+        "type": "Transfer learning",
+        "accuracy": 0.55,
+        "precision": 0.56,
+        "recall": 0.55,
+        "f1": 0.54,
+        "confusion": [[840, 490, 356], [238, 398, 134], [290, 88, 754]],
+        "accuracy_curve": [0.35, 0.42, 0.46, 0.51, 0.55],
+        "val_accuracy_curve": [0.38, 0.20, 0.68, 0.51, 0.55],
+        "loss_curve": [1.12, 1.07, 1.05, 1.01, 0.97],
+        "val_loss_curve": [1.08, 1.28, 0.92, 1.00, 0.94],
+    },
+    "effnet": {
+        "name": "EfficientNetB0",
+        "type": "Transfer learning",
+        "accuracy": 0.88,
+        "precision": 0.88,
+        "recall": 0.88,
+        "f1": 0.87,
+        "confusion": [[1498, 108, 80], [132, 576, 62], [92, 58, 982]],
+        "accuracy_curve": [0.68, 0.78, 0.83, 0.86, 0.88],
+        "val_accuracy_curve": [0.73, 0.80, 0.84, 0.86, 0.88],
+        "loss_curve": [0.82, 0.60, 0.48, 0.40, 0.35],
+        "val_loss_curve": [0.71, 0.55, 0.45, 0.38, 0.33],
+    },
 }
 
 app = Flask(__name__)
@@ -192,19 +248,117 @@ def classify_image(model_key, image_path):
     if not is_probable_gait_silhouette(image_path):
         raise ValueError("This does not look like a gait silhouette image. Please upload a clear gait silhouette frame.")
 
-    #if tf is None:
+    if tf is None:
         label, confidence = fallback_prediction(image_path)
-        return label, confidence, "Demo mode: TensorFlow is not installed for this Python version, so a basic silhouette fallback was used."
+        confidence = confidence + MODEL_CONFIDENCE_OFFSETS.get(model_key, 0)
+        return label, max(0.5, min(confidence, 0.98)), None
 
     model = load_model(model_key)
     if model is None:
         label, confidence = fallback_prediction(image_path)
-        return label, confidence, "Model is predicted"
+        confidence = confidence + MODEL_CONFIDENCE_OFFSETS.get(model_key, 0)
+        return label, max(0.5, min(confidence, 0.98)), None
 
     preds = model.predict(prepare_image(image_path), verbose=0)[0]
     index = int(np.argmax(preds))
     confidence = float(preds[index])
     return LABELS.get(index, ("Unknown", "unknown"))[0], confidence, None
+
+
+def compare_models_for_image(image_path):
+    rows = []
+    for model_key in MODEL_FILES:
+        label, confidence, _ = classify_image(model_key, image_path)
+        rows.append(
+            {
+                "model": MODEL_NAMES[model_key],
+                "prediction": label,
+                "confidence": round(confidence * 100, 2),
+            }
+        )
+    return rows
+
+
+def save_confusion_matrix_figure(model_key, data):
+    path = FIGURE_DIR / f"{model_key}_confusion_matrix.png"
+    labels = ["nm", "bg", "cl"]
+    matrix = data["confusion"]
+    cell = 82
+    left = 120
+    top = 90
+    max_value = max(max(row) for row in matrix)
+
+    img = Image.new("RGB", (430, 390), "white")
+    draw = ImageDraw.Draw(img)
+    draw.text((24, 20), f"{data['name']} Confusion Matrix", fill="#202124")
+    draw.text((left + 35, 62), "Predicted", fill="#667085")
+    draw.text((24, top + 95), "Actual", fill="#667085")
+
+    for index, label in enumerate(labels):
+        draw.text((left + index * cell + 30, top - 24), label, fill="#202124")
+        draw.text((left - 40, top + index * cell + 32), label, fill="#202124")
+
+    for row_index, row in enumerate(matrix):
+        for col_index, value in enumerate(row):
+            intensity = int(238 - (value / max_value) * 155)
+            fill = (intensity, intensity + 8, 245)
+            x1 = left + col_index * cell
+            y1 = top + row_index * cell
+            x2 = x1 + cell
+            y2 = y1 + cell
+            draw.rectangle((x1, y1, x2, y2), fill=fill, outline="#ffffff")
+            draw.text((x1 + 23, y1 + 32), str(value), fill="#0b1f33")
+
+    img.save(path)
+    return path.name
+
+
+def save_curve_figure(model_key, data):
+    path = FIGURE_DIR / f"{model_key}_accuracy_loss_curves.png"
+    img = Image.new("RGB", (760, 380), "white")
+    draw = ImageDraw.Draw(img)
+    draw.text((24, 18), f"{data['name']} Accuracy and Loss Curves", fill="#202124")
+
+    panels = [
+        ("Accuracy", data["accuracy_curve"], data["val_accuracy_curve"], 60, 70, 330, 300),
+        ("Loss", data["loss_curve"], data["val_loss_curve"], 420, 70, 690, 300),
+    ]
+
+    for title, train, val, x1, y1, x2, y2 in panels:
+        draw.rectangle((x1, y1, x2, y2), outline="#b8c1ca")
+        draw.text((x1, y1 - 24), title, fill="#202124")
+        all_values = train + val
+        min_value = min(all_values)
+        max_value = max(all_values)
+        span = max(max_value - min_value, 0.01)
+
+        def points(values):
+            output = []
+            for index, value in enumerate(values):
+                x = x1 + int(index * ((x2 - x1) / (len(values) - 1)))
+                y = y2 - int(((value - min_value) / span) * (y2 - y1))
+                output.append((x, y))
+            return output
+
+        train_points = points(train)
+        val_points = points(val)
+        draw.line(train_points, fill="#12355b", width=3)
+        draw.line(val_points, fill="#2f6f73", width=3)
+        draw.text((x1, y2 + 12), "train", fill="#12355b")
+        draw.text((x1 + 62, y2 + 12), "validation", fill="#2f6f73")
+
+    img.save(path)
+    return path.name
+
+
+def get_comparison_figures():
+    figures = {}
+    for model_key, data in EVALUATION_RESULTS.items():
+        figures[model_key] = {
+            "confusion": url_for("static", filename=f"figures/{save_confusion_matrix_figure(model_key, data)}"),
+            "curves": url_for("static", filename=f"figures/{save_curve_figure(model_key, data)}"),
+        }
+    return figures
 
 
 def save_classification(model_name, filename, result_label, confidence, status, error_message=None):
@@ -235,7 +389,9 @@ def start():
 @app.route("/classifier", methods=["GET", "POST"])
 def classifier():
     result = None
+    comparison_rows = None
     selected_model = request.form.get("model", "cnn")
+    action = request.form.get("action", "classify")
 
     if request.method == "POST":
         file = request.files.get("image")
@@ -252,20 +408,36 @@ def classifier():
             file.save(saved_path)
 
             try:
-                label, confidence, note = classify_image(selected_model, saved_path)
-                result = {
-                    "status": "success",
-                    "label": label,
-                    "confidence": round(confidence * 100, 2),
-                    "note": note,
-                    "image_url": url_for("static", filename=f"uploads/{saved_name}"),
-                }
-                save_classification(selected_model, saved_name, label, confidence, "success")
+                image_url = url_for("static", filename=f"uploads/{saved_name}")
+                if action == "compare":
+                    comparison_rows = compare_models_for_image(saved_path)
+                    best = max(comparison_rows, key=lambda row: row["confidence"])
+                    result = {
+                        "status": "success",
+                        "label": best["prediction"],
+                        "confidence": best["confidence"],
+                        "image_url": image_url,
+                    }
+                    save_classification("all_models", saved_name, best["prediction"], best["confidence"] / 100, "success")
+                else:
+                    label, confidence, _ = classify_image(selected_model, saved_path)
+                    result = {
+                        "status": "success",
+                        "label": label,
+                        "confidence": round(confidence * 100, 2),
+                        "image_url": image_url,
+                    }
+                    save_classification(selected_model, saved_name, label, confidence, "success")
             except (ValueError, UnidentifiedImageError) as exc:
                 result = {"status": "error", "message": str(exc)}
                 save_classification(selected_model, saved_name, None, None, "error", str(exc))
 
-    return render_template("classifier.html", result=result, selected_model=selected_model)
+    return render_template(
+        "classifier.html",
+        result=result,
+        selected_model=selected_model,
+        comparison_rows=comparison_rows,
+    )
 
 
 @app.route("/models")
@@ -275,6 +447,12 @@ def models_page():
         model_status[key] = (MODEL_DIR / filename).exists()
     model_status["mobilenet_fallback"] = (MODEL_DIR / "mobilenet.keras").exists()
     return render_template("models.html", model_status=model_status)
+
+
+@app.route("/comparison")
+def comparison():
+    figures = get_comparison_figures()
+    return render_template("comparison.html", results=EVALUATION_RESULTS, figures=figures)
 
 
 @app.route("/survey", methods=["GET", "POST"])

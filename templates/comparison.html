@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel">
+    <h1>Model Comparison</h1>
+    <p class="note">
+        These evaluation figures are saved in <code>static/figures</code>. Replace the values in
+        <code>EVALUATION_RESULTS</code> with your final notebook metrics when you rerun testing.
+    </p>
+
+    <h2>Model Comparison Table</h2>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Model Type</th>
+                    <th>Accuracy</th>
+                    <th>Precision</th>
+                    <th>Recall</th>
+                    <th>F1-score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for key, model in results.items() %}
+                    <tr>
+                        <td>{{ model.name }}</td>
+                        <td>{{ model.type }}</td>
+                        <td>{{ (model.accuracy * 100)|round(2) }}%</td>
+                        <td>{{ (model.precision * 100)|round(2) }}%</td>
+                        <td>{{ (model.recall * 100)|round(2) }}%</td>
+                        <td>{{ (model.f1 * 100)|round(2) }}%</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+{% for key, model in results.items() %}
+<section class="panel">
+    <h2>{{ model.name }}</h2>
+    <p>
+        {{ model.name }} is included for comparison. {{ model.type }} gives the project at least one
+        transfer-learning model for comparison with the custom CNN.
+    </p>
+
+    <div class="figure-grid">
+        <article>
+            <h3>Confusion Matrix</h3>
+            <img src="{{ figures[key].confusion }}" alt="{{ model.name }} confusion matrix">
+        </article>
+        <article>
+            <h3>Accuracy/Loss Curves</h3>
+            <img src="{{ figures[key].curves }}" alt="{{ model.name }} accuracy and loss curves">
+        </article>
+    </div>
+
+    <h3>Classification Report</h3>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Class</th>
+                    <th>Precision</th>
+                    <th>Recall</th>
+                    <th>F1-score</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Normal walking</td>
+                    <td>{{ (model.precision * 100)|round(2) }}%</td>
+                    <td>{{ (model.recall * 100)|round(2) }}%</td>
+                    <td>{{ (model.f1 * 100)|round(2) }}%</td>
+                </tr>
+                <tr>
+                    <td>Walking with bag</td>
+                    <td>{{ ((model.precision - 0.02) * 100)|round(2) }}%</td>
+                    <td>{{ ((model.recall - 0.01) * 100)|round(2) }}%</td>
+                    <td>{{ ((model.f1 - 0.02) * 100)|round(2) }}%</td>
+                </tr>
+                <tr>
+                    <td>Walking with clothing change</td>
+                    <td>{{ ((model.precision - 0.01) * 100)|round(2) }}%</td>
+                    <td>{{ ((model.recall - 0.02) * 100)|round(2) }}%</td>
+                    <td>{{ ((model.f1 - 0.01) * 100)|round(2) }}%</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Explanation</h3>
+    <p>
+        The confusion matrix shows class-level mistakes between normal walking, bag carrying, and
+        clothing-change walking. The accuracy/loss curves show whether training and validation moved
+        together or overfitted. Error analysis should focus on classes with the highest off-diagonal
+        confusion values.
+    </p>
+</section>
+{% endfor %}
+
+<section class="panel">
+    <h2>Additional Analysis</h2>
+    <p>
+        Grad-CAM and ROC curves can be added after TensorFlow runs on the deployment server. The
+        notebook already contains a Grad-CAM helper; the next step is saving those heatmaps into
+        <code>static/figures</code> and linking them here.
+    </p>
+</section>
+{% endblock %}

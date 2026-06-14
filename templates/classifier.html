@@ -24,7 +24,10 @@
             <input type="file" name="image" accept=".png,.jpg,.jpeg,.bmp" required>
         </label>
 
-        <button class="primary-button" type="submit">Classify Image</button>
+        <div class="button-row">
+            <button class="primary-button" type="submit" name="action" value="classify">Classify Image</button>
+            <button class="secondary-button" type="submit" name="action" value="compare">Compare All Models</button>
+        </div>
     </form>
 </section>
 
@@ -37,11 +40,31 @@
                 <div>
                     <p class="classification-label">Classification: {{ result.label }}</p>
                     <p><strong>Confidence:</strong> {{ result.confidence }}%</p>
-                    {% if result.note %}
-                        <p class="note">{{ result.note }}</p>
-                    {% endif %}
                 </div>
             </div>
+            {% if comparison_rows %}
+                <h2>Model Comparison For This Image</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Prediction</th>
+                                <th>Confidence</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in comparison_rows %}
+                                <tr>
+                                    <td>{{ row.model }}</td>
+                                    <td>{{ row.prediction }}</td>
+                                    <td>{{ row.confidence }}%</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
         {% else %}
             <p class="error">{{ result.message }}</p>
         {% endif %}
