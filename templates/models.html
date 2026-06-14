@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel">
+    <h1>Models Used</h1>
+    <div class="model-list">
+        <article>
+            <h2>CNN</h2>
+            <p>Custom convolutional neural network trained on 128 x 128 gait silhouette images.</p>
+            <p>Status: {{ "Ready" if model_status.cnn else "Missing models/cnn.keras" }}</p>
+        </article>
+        <article>
+            <h2>ResNet</h2>
+            <p>ResNet comparison slot. Your notebook trained MobileNet, so this button can use <code>models/mobilenet.keras</code> as a fallback.</p>
+            <p>
+                Status:
+                {% if model_status.resnet %}
+                    Ready with ResNet
+                {% elif model_status.mobilenet_fallback %}
+                    Using MobileNet fallback
+                {% else %}
+                    Missing models/resnet.keras or models/mobilenet.keras
+                {% endif %}
+            </p>
+        </article>
+        <article>
+            <h2>EffNet</h2>
+            <p>EfficientNetB0 transfer-learning model from the notebook.</p>
+            <p>Status: {{ "Ready" if model_status.effnet else "Missing models/effnet.keras" }}</p>
+        </article>
+    </div>
+    {% if model_status.mobilenet_fallback %}
+        <p class="note">MobileNet fallback is available for the ResNet button.</p>
+    {% endif %}
+</section>
+{% endblock %}

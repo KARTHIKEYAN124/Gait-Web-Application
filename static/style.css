@@ -1,0 +1,298 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #202124;
+    background: #f4f6f8;
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    padding: 16px 7%;
+    background: #ffffff;
+    border-bottom: 1px solid #dfe3e8;
+}
+
+.brand {
+    font-size: 20px;
+    font-weight: 700;
+    color: #12355b;
+    text-decoration: none;
+}
+
+nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+nav a,
+.admin-head a {
+    color: #31506f;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.page {
+    width: min(1100px, 88%);
+    margin: 34px auto;
+}
+
+.hero {
+    min-height: 420px;
+    display: flex;
+    align-items: center;
+    padding: 48px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #e7f0f5, #ffffff 56%, #edf2e5);
+    border: 1px solid #dfe3e8;
+}
+
+.hero h1 {
+    max-width: 640px;
+    margin: 0 0 12px;
+    font-size: 44px;
+    line-height: 1.1;
+}
+
+.hero p {
+    max-width: 620px;
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+.eyebrow {
+    margin: 0 0 10px;
+    color: #5f6f52;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 13px;
+}
+
+.panel,
+.result-box {
+    background: #ffffff;
+    border: 1px solid #dfe3e8;
+    border-radius: 8px;
+    padding: 26px;
+    margin-bottom: 24px;
+}
+
+.narrow {
+    max-width: 460px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+h1,
+h2 {
+    margin-top: 0;
+}
+
+.classifier-form,
+.simple-form {
+    display: grid;
+    gap: 18px;
+}
+
+.model-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.model-buttons label,
+.file-box,
+.primary-button,
+.primary-link {
+    border-radius: 6px;
+    border: 1px solid #b8c1ca;
+    padding: 13px 18px;
+}
+
+.model-buttons label {
+    cursor: pointer;
+    min-width: 120px;
+    text-align: center;
+    font-weight: 700;
+    background: #f8fafc;
+}
+
+.model-buttons label.selected,
+.model-buttons label:has(input:checked) {
+    background: #12355b;
+    color: #ffffff;
+    border-color: #12355b;
+}
+
+.model-buttons input {
+    display: none;
+}
+
+.file-box {
+    display: grid;
+    gap: 10px;
+    background: #f8fafc;
+}
+
+.file-box span {
+    font-weight: 700;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    border: 1px solid #b8c1ca;
+    border-radius: 6px;
+    padding: 12px;
+    font: inherit;
+    background: #ffffff;
+}
+
+label {
+    display: grid;
+    gap: 7px;
+    font-weight: 700;
+}
+
+.primary-button,
+.primary-link {
+    width: fit-content;
+    cursor: pointer;
+    background: #2f6f73;
+    color: #ffffff;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.result-grid {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 22px;
+    align-items: start;
+}
+
+.result-grid img {
+    width: 220px;
+    height: 220px;
+    object-fit: contain;
+    border: 1px solid #dfe3e8;
+    background: #f8fafc;
+}
+
+.error {
+    color: #a12d2d;
+    font-weight: 700;
+}
+
+.note {
+    color: #667085;
+}
+
+.messages {
+    background: #fff7dc;
+    border: 1px solid #e8d698;
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 18px;
+}
+
+.messages p {
+    margin: 6px 0;
+}
+
+.model-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.model-list article,
+.stats div {
+    border: 1px solid #dfe3e8;
+    border-radius: 8px;
+    padding: 18px;
+    background: #f8fafc;
+}
+
+.admin-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 28px;
+}
+
+.stats strong {
+    display: block;
+    font-size: 28px;
+    color: #12355b;
+}
+
+.stats span {
+    color: #667085;
+}
+
+.table-wrap {
+    overflow-x: auto;
+    margin-bottom: 28px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+}
+
+th,
+td {
+    text-align: left;
+    padding: 10px;
+    border-bottom: 1px solid #dfe3e8;
+    vertical-align: top;
+}
+
+th {
+    background: #eef2f6;
+}
+
+@media (max-width: 760px) {
+    .topbar,
+    .admin-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .page {
+        width: 94%;
+        margin-top: 20px;
+    }
+
+    .hero {
+        padding: 28px;
+        min-height: 340px;
+    }
+
+    .hero h1 {
+        font-size: 34px;
+    }
+
+    .result-grid,
+    .model-list,
+    .stats {
+        grid-template-columns: 1fr;
+    }
+}

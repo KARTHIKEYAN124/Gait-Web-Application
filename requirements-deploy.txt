@@ -1,0 +1,4 @@
+Flask>=3.0,<4
+Pillow>=11.0
+numpy>=2.1
+gunicorn>=22.0

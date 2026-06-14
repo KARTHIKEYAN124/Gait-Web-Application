@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel">
+    <h1>Classifier</h1>
+    <form method="post" enctype="multipart/form-data" class="classifier-form">
+        <div class="model-buttons">
+            <label class="{% if selected_model == 'cnn' %}selected{% endif %}">
+                <input type="radio" name="model" value="cnn" {% if selected_model == 'cnn' %}checked{% endif %}>
+                CNN
+            </label>
+            <label class="{% if selected_model == 'resnet' %}selected{% endif %}">
+                <input type="radio" name="model" value="resnet" {% if selected_model == 'resnet' %}checked{% endif %}>
+                ResNet
+            </label>
+            <label class="{% if selected_model == 'effnet' %}selected{% endif %}">
+                <input type="radio" name="model" value="effnet" {% if selected_model == 'effnet' %}checked{% endif %}>
+                EffNet
+            </label>
+        </div>
+
+        <label class="file-box">
+            <span>Image Input</span>
+            <input type="file" name="image" accept=".png,.jpg,.jpeg,.bmp" required>
+        </label>
+
+        <button class="primary-button" type="submit">Classify Image</button>
+    </form>
+</section>
+
+<section class="result-box">
+    <h2>Analysis Result</h2>
+    {% if result %}
+        {% if result.status == "success" %}
+            <div class="result-grid">
+                <img src="{{ result.image_url }}" alt="Uploaded gait silhouette">
+                <div>
+                    <p><strong>Prediction:</strong> {{ result.label }}</p>
+                    <p><strong>Confidence:</strong> {{ result.confidence }}%</p>
+                    {% if result.note %}
+                        <p class="note">{{ result.note }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <p class="error">{{ result.message }}</p>
+        {% endif %}
+    {% else %}
+        <p>No image classified yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

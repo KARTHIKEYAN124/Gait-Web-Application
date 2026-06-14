@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel">
+    <h1>Survey</h1>
+    <form method="post" class="simple-form">
+        <label>Name
+            <input type="text" name="name" placeholder="Optional">
+        </label>
+        <label>Email
+            <input type="email" name="email" placeholder="Optional">
+        </label>
+        <label>How accurate was the model result?
+            <select name="accuracy_rating" required>
+                <option value="">Select rating</option>
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Good</option>
+                <option value="3">3 - Average</option>
+                <option value="2">2 - Poor</option>
+                <option value="1">1 - Very poor</option>
+            </select>
+        </label>
+        <label>How fast was classification?
+            <select name="speed_rating" required>
+                <option value="">Select rating</option>
+                <option value="5">5 - Very fast</option>
+                <option value="4">4 - Fast</option>
+                <option value="3">3 - Okay</option>
+                <option value="2">2 - Slow</option>
+                <option value="1">1 - Very slow</option>
+            </select>
+        </label>
+        <label>Was the page easy to use?
+            <select name="easy_to_use" required>
+                <option value="">Select answer</option>
+                <option>Yes</option>
+                <option>Somewhat</option>
+                <option>No</option>
+            </select>
+        </label>
+        <label>Which feature was most useful?
+            <input type="text" name="useful_feature" placeholder="Model buttons, image input, result box...">
+        </label>
+        <label>Comments
+            <textarea name="comments" rows="4"></textarea>
+        </label>
+        <button class="primary-button" type="submit">Submit Survey</button>
+    </form>
+</section>
+{% endblock %}

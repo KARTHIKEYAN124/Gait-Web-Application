@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero">
+    <div>
+        <p class="eyebrow">Pattern Recognition Project</p>
+        <h1>Gait Silhouette Classification</h1>
+        <p>
+            Upload a gait silhouette image and classify the walking condition using CNN,
+            ResNet, or EfficientNet style models.
+        </p>
+        <a class="primary-link" href="{{ url_for('classifier') }}">Start Classification</a>
+    </div>
+</section>
+{% endblock %}
