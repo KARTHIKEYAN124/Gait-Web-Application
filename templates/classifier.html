@@ -78,6 +78,29 @@
                             <img src="{{ analysis_report.gradcam }}" alt="Grad-CAM heatmap for uploaded gait image">
                         </article>
                     </div>
+
+                    <h2>Confusion Matrix And Accuracy/Loss Curves</h2>
+                    {% for key, model in evaluation_results.items() %}
+                        <section class="inline-report">
+                            <h3>{{ model.name }}</h3>
+                            <p>
+                                Accuracy: {{ (model.accuracy * 100)|round(2) }}% |
+                                Precision: {{ (model.precision * 100)|round(2) }}% |
+                                Recall: {{ (model.recall * 100)|round(2) }}% |
+                                F1-score: {{ (model.f1 * 100)|round(2) }}%
+                            </p>
+                            <div class="figure-grid">
+                                <article>
+                                    <h3>Confusion Matrix</h3>
+                                    <img src="{{ analysis_report.models[key].confusion }}" alt="{{ model.name }} confusion matrix">
+                                </article>
+                                <article>
+                                    <h3>Accuracy/Loss Curves</h3>
+                                    <img src="{{ analysis_report.models[key].curves }}" alt="{{ model.name }} accuracy and loss curves">
+                                </article>
+                            </div>
+                        </section>
+                    {% endfor %}
                 {% endif %}
             {% endif %}
         {% else %}

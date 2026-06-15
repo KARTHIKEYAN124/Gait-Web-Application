@@ -421,6 +421,18 @@ def generate_pdf_report(report_id, image_path, result, comparison_rows, figures)
     page.paste(gradcam_img, (50, 100))
     pages.append(page)
 
+    for model_key, model in EVALUATION_RESULTS.items():
+        page, draw = make_report_page(f"{model['name']} Evaluation")
+        draw.text((50, 90), f"Accuracy: {model['accuracy'] * 100:.2f}%", fill="#202124")
+        draw.text((50, 115), f"Precision: {model['precision'] * 100:.2f}%", fill="#202124")
+        draw.text((50, 140), f"Recall: {model['recall'] * 100:.2f}%", fill="#202124")
+        draw.text((50, 165), f"F1-score: {model['f1'] * 100:.2f}%", fill="#202124")
+        confusion = Image.open(FIGURE_DIR / Path(figures["models"][model_key]["confusion_file"]).name).convert("RGB").resize((360, 325))
+        curves = Image.open(FIGURE_DIR / Path(figures["models"][model_key]["curves_file"]).name).convert("RGB").resize((680, 340))
+        page.paste(confusion, (50, 220))
+        page.paste(curves, (50, 590))
+        pages.append(page)
+
     pages[0].save(pdf_path, save_all=True, append_images=pages[1:])
     return pdf_path.name
 
@@ -484,8 +496,10 @@ def classifier():
                         "confidence": best["confidence"],
                         "image_url": image_url,
                     }
+                    model_figures = get_comparison_figures()
                     gradcam_file = save_gradcam_figure(saved_path, report_id)
                     analysis_report = {
+                        "models": model_figures,
                         "gradcam": url_for("static", filename=f"figures/{gradcam_file}"),
                         "gradcam_file": gradcam_file,
                         "pdf_url": None,
@@ -518,6 +532,7 @@ def classifier():
         selected_model=selected_model,
         comparison_rows=comparison_rows,
         analysis_report=analysis_report,
+        evaluation_results=EVALUATION_RESULTS,
     )
 
 
