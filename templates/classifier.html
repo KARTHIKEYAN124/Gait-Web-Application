@@ -79,28 +79,17 @@
                         </article>
                     </div>
 
-                    <h2>Confusion Matrix And Accuracy/Loss Curves</h2>
-                    {% for key, model in evaluation_results.items() %}
-                        <section class="inline-report">
-                            <h3>{{ model.name }}</h3>
-                            <p>
-                                Accuracy: {{ (model.accuracy * 100)|round(2) }}% |
-                                Precision: {{ (model.precision * 100)|round(2) }}% |
-                                Recall: {{ (model.recall * 100)|round(2) }}% |
-                                F1-score: {{ (model.f1 * 100)|round(2) }}%
-                            </p>
-                            <div class="figure-grid">
-                                <article>
-                                    <h3>Confusion Matrix</h3>
-                                    <img src="{{ analysis_report.models[key].confusion }}" alt="{{ model.name }} confusion matrix">
-                                </article>
-                                <article>
-                                    <h3>Accuracy/Loss Curves</h3>
-                                    <img src="{{ analysis_report.models[key].curves }}" alt="{{ model.name }} accuracy and loss curves">
-                                </article>
-                            </div>
-                        </section>
-                    {% endfor %}
+                    <h2>Prediction Table Analysis</h2>
+                    <div class="figure-grid">
+                        <article>
+                            <h3>Prediction Matrix</h3>
+                            <img src="{{ analysis_report.prediction_matrix }}" alt="Prediction matrix based on uploaded image">
+                        </article>
+                        <article>
+                            <h3>Confidence Comparison</h3>
+                            <img src="{{ analysis_report.confidence_chart }}" alt="Confidence comparison based on uploaded image">
+                        </article>
+                    </div>
                 {% endif %}
             {% endif %}
         {% else %}

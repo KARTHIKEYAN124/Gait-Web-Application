@@ -367,6 +367,62 @@ def get_comparison_figures():
     return figures
 
 
+def save_prediction_matrix_figure(report_id, comparison_rows):
+    path = FIGURE_DIR / f"{report_id}_prediction_matrix.png"
+    labels = ["Normal walking", "Walking with bag", "Walking with coat/clothing change"]
+    short_labels = ["Normal", "Bag", "Coat"]
+    cell = 96
+    left = 230
+    top = 95
+    img = Image.new("RGB", (560, 430), "white")
+    draw = ImageDraw.Draw(img)
+    draw.text((24, 20), "Prediction Matrix For Uploaded Image", fill="#202124")
+    draw.text((left + 40, 62), "Predicted class", fill="#667085")
+
+    for index, label in enumerate(short_labels):
+        draw.text((left + index * cell + 20, top - 24), label, fill="#202124")
+
+    for row_index, row in enumerate(comparison_rows):
+        y = top + row_index * cell
+        draw.text((24, y + 28), row["model"], fill="#202124")
+        for col_index, label in enumerate(labels):
+            x = left + col_index * cell
+            is_prediction = row["prediction"] == label
+            fill = "#2f6f73" if is_prediction else "#edf2f6"
+            text_fill = "white" if is_prediction else "#667085"
+            draw.rectangle((x, y, x + cell, y + cell), fill=fill, outline="#ffffff")
+            value = f"{row['confidence']}%" if is_prediction else "-"
+            draw.text((x + 24, y + 36), value, fill=text_fill)
+
+    img.save(path)
+    return path.name
+
+
+def save_confidence_chart(report_id, comparison_rows):
+    path = FIGURE_DIR / f"{report_id}_confidence_chart.png"
+    img = Image.new("RGB", (760, 380), "white")
+    draw = ImageDraw.Draw(img)
+    draw.text((24, 20), "Model Confidence Comparison For Uploaded Image", fill="#202124")
+
+    x1 = 260
+    bar_height = 42
+    gap = 42
+    max_width = 420
+    y = 85
+    for row in comparison_rows:
+        confidence = float(row["confidence"])
+        width = int((confidence / 100) * max_width)
+        draw.text((24, y + 10), row["model"], fill="#202124")
+        draw.rectangle((x1, y, x1 + max_width, y + bar_height), fill="#edf2f6")
+        draw.rectangle((x1, y, x1 + width, y + bar_height), fill="#2f6f73")
+        draw.text((x1 + max_width + 16, y + 10), f"{confidence:.2f}%", fill="#202124")
+        y += bar_height + gap
+
+    draw.text((24, 330), "Values are calculated from the uploaded image prediction table.", fill="#667085")
+    img.save(path)
+    return path.name
+
+
 def save_gradcam_figure(image_path, report_id):
     """Creates a lightweight Grad-CAM-style heatmap for the uploaded silhouette."""
     path = FIGURE_DIR / f"{report_id}_gradcam.png"
@@ -421,17 +477,12 @@ def generate_pdf_report(report_id, image_path, result, comparison_rows, figures)
     page.paste(gradcam_img, (50, 100))
     pages.append(page)
 
-    for model_key, model in EVALUATION_RESULTS.items():
-        page, draw = make_report_page(f"{model['name']} Evaluation")
-        draw.text((50, 90), f"Accuracy: {model['accuracy'] * 100:.2f}%", fill="#202124")
-        draw.text((50, 115), f"Precision: {model['precision'] * 100:.2f}%", fill="#202124")
-        draw.text((50, 140), f"Recall: {model['recall'] * 100:.2f}%", fill="#202124")
-        draw.text((50, 165), f"F1-score: {model['f1'] * 100:.2f}%", fill="#202124")
-        confusion = Image.open(FIGURE_DIR / Path(figures["models"][model_key]["confusion_file"]).name).convert("RGB").resize((360, 325))
-        curves = Image.open(FIGURE_DIR / Path(figures["models"][model_key]["curves_file"]).name).convert("RGB").resize((680, 340))
-        page.paste(confusion, (50, 220))
-        page.paste(curves, (50, 590))
-        pages.append(page)
+    page, draw = make_report_page("Prediction Table Analysis")
+    matrix = Image.open(FIGURE_DIR / figures["prediction_matrix_file"]).convert("RGB").resize((620, 475))
+    chart = Image.open(FIGURE_DIR / figures["confidence_chart_file"]).convert("RGB").resize((680, 340))
+    page.paste(matrix, (50, 100))
+    page.paste(chart, (50, 610))
+    pages.append(page)
 
     pages[0].save(pdf_path, save_all=True, append_images=pages[1:])
     return pdf_path.name
@@ -496,12 +547,16 @@ def classifier():
                         "confidence": best["confidence"],
                         "image_url": image_url,
                     }
-                    model_figures = get_comparison_figures()
                     gradcam_file = save_gradcam_figure(saved_path, report_id)
+                    prediction_matrix_file = save_prediction_matrix_figure(report_id, comparison_rows)
+                    confidence_chart_file = save_confidence_chart(report_id, comparison_rows)
                     analysis_report = {
-                        "models": model_figures,
                         "gradcam": url_for("static", filename=f"figures/{gradcam_file}"),
                         "gradcam_file": gradcam_file,
+                        "prediction_matrix": url_for("static", filename=f"figures/{prediction_matrix_file}"),
+                        "prediction_matrix_file": prediction_matrix_file,
+                        "confidence_chart": url_for("static", filename=f"figures/{confidence_chart_file}"),
+                        "confidence_chart_file": confidence_chart_file,
                         "pdf_url": None,
                     }
                     pdf_file = generate_pdf_report(
@@ -532,7 +587,6 @@ def classifier():
         selected_model=selected_model,
         comparison_rows=comparison_rows,
         analysis_report=analysis_report,
-        evaluation_results=EVALUATION_RESULTS,
     )
 
 
